@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Pong Final Diagonal Serve Version</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body { margin:0; overflow:hidden; background:black; }
+    canvas { display:block; }
+    #replayBtn {
+        position:absolute;
+        top:60%;
+        left:50%;
+        transform:translate(-50%, -50%);
+        padding:15px 30px;
+        background:white;
+        color:black;
+        font-size:24px;
+        border-radius:10px;
+        display:none;
+    }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<button id="replayBtn">REPLAY</button>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const replayBtn = document.getElementById("replayBtn");
+
+function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+let paddleW = 20;
+let paddleH = 120;
+let playerX = 20;
+let playerY = 200;
+let aiX = canvas.width - 40;
+let aiY = 200;
+
+let ballX = canvas.width/2;
+let ballY = canvas.height/2;
+let ballR = 12;
+let ballVX = 0;
+let ballVY = 0;
+
+let pScore = 0;
+let aiScore = 0;
+let gameOver = false;
+
+function resetPositions(){
+    playerY = canvas.height/2 - paddleH/2;
+    aiY = canvas.height/2 - paddleH/2;
+}
+
+function resetBall(){
+    ballX = canvas.width/2;
+    ballY = canvas.height/2;
+
+    ballVX = 0;
+    ballVY = 0;
+
+    setTimeout(() => {
+        const speed = 7;
+
+        const dirX = Math.random() < 0.5 ? -1 : 1;
+        const dirY = Math.random() < 0.5 ? -1 : 1;
+
+        ballVX = speed * dirX;
+        ballVY = speed * dirY;
+    }, 1000);
+}
+
+canvas.ontouchstart = (e)=>{
+    let y = e.touches[0].clientY;
+    if(y < playerY + paddleH/2) playerY -= 50;
+    else playerY += 50;
+};
+
+document.onkeydown = e=>{
+    if(e.key==="ArrowUp") playerY -= 20;
+    if(e.key==="ArrowDown") playerY += 20;
+};
+
+replayBtn.onclick = ()=>{
+    pScore = 0;
+    aiScore = 0;
+    gameOver = false;
+    replayBtn.style.display="none";
+    resetPositions();
+    resetBall();
+    loop();
+};
+
+function loop(){
+    if(gameOver){
+        ctx.fillStyle="white";
+        ctx.font="50px Arial";
+        ctx.fillText((pScore>aiScore?"YOU WIN!":"YOU LOSE!"), canvas.width/2-150, canvas.height/2);
+        replayBtn.style.display="block";
+        return;
+    }
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    playerY = Math.max(0, Math.min(canvas.height-paddleH, playerY));
+
+    let aiCenter = aiY + paddleH/2;
+    if(aiCenter < ballY - 25) aiY += 6;
+    else if(aiCenter > ballY + 25) aiY -= 6;
+    aiY = Math.max(0, Math.min(canvas.height-paddleH, aiY));
+
+    ballX += ballVX;
+    ballY += ballVY;
+
+    if(ballY < ballR || ballY > canvas.height-ballR) ballVY *= -1;
+
+    if(ballX-ballR < playerX+paddleW &&
+       ballY > playerY &&
+       ballY < playerY+paddleH){
+        ballVX = Math.abs(ballVX);
+    }
+
+    if(ballX+ballR > aiX &&
+       ballY > aiY &&
+       ballY < aiY+paddleH){
+        ballVX = -Math.abs(ballVX);
+    }
+
+    if(ballX < 0){
+        aiScore++;
+        resetBall();
+    }
+    if(ballX > canvas.width){
+        pScore++;
+        resetBall();
+    }
+
+    if(pScore === 10 || aiScore === 10){
+        gameOver = true;
+    }
+
+    ctx.fillStyle="white";
+    ctx.fillRect(playerX, playerY, paddleW, paddleH);
+    ctx.fillRect(aiX, aiY, paddleW, paddleH);
+
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, ballR, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.font="40px Arial";
+    ctx.fillText(pScore + "  |  " + aiScore, canvas.width/2 - 50, 50);
+
+    requestAnimationFrame(loop);
+}
+
+resetPositions();
+resetBall();
+loop();
+</script>
+</body>
+</html>
